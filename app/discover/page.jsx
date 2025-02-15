@@ -3,7 +3,7 @@ import spaces from "@/constants/space";
 
 const DiscoverPage = () => {
   return (
-    <div className="p-6 animate-fade-in font-sans bg-[linear-gradient(to_bottom,_#00000,_#d3d3d3)] min-h-screen text-black">
+    <div className="p-6 animate-fade-in font-sans bg-gradient-to-bottom from-black to-gray-300 min-h-screen text-black">
       <h1 className="text-4xl font-extrabold mb-6 text-center drop-shadow-lg font-serif">
         Discover Spaces
       </h1>
@@ -17,7 +17,7 @@ const DiscoverPage = () => {
         {spaces.map((space, index) => (
           <div
             key={index}
-            className="relative group rounded-xl overflow-hidden h-72 transition-transform transform  shadow-xl hover:shadow-2xl cursor-pointer backdrop-blur-lg bg-white/5"
+            className="relative group rounded-xl overflow-hidden h-72 transition-transform transform shadow-xl hover:shadow-2xl cursor-pointer backdrop-blur-lg bg-white/5"
           >
             <Link href={`/discover/${space.href}`} key={space.href}>
               {/* Background Image */}
@@ -42,12 +42,12 @@ const DiscoverPage = () => {
                   {space.note || "Explore this amazing space"}
                 </p>
                 <div className="flex justify-end">
-                  <Link
+                  {/* <a
                     href={`/discover/${space.href}`}
                     className="px-4 py-2 bg-black text-white border border-gray-700 rounded-lg hover:bg-gray-900 transition-all text-sm font-bold transform hover:scale-105 shadow-md shadow-gray-500/50"
                   >
                     View Space
-                  </Link>
+                  </a> */}
                 </div>
               </div>
             </Link>
