@@ -37,5 +37,4 @@ const spaces = [
   },
 ];
 
-
 export default spaces;
