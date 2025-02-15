@@ -47,13 +47,11 @@ const DiscoverSonification = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center text-white pt-10 transition-all duration-300"
-      style={{
-        background: "radial-gradient(circle, #7A00B2, #5E00A0, #42008D, #26007B, #0A0068)",
-      }}
+      className="min-h-screen flex flex-col items-center text-white transition-all duration-300 pt-24"
     >
+      
       <h1
-        className="title text-5xl font-bold tracking-wide pb-8"
+        className="text-5xl font-bold tracking-wide pb-8"
         style={{
           fontFamily: "'Rubik Glitch', cursive",
           fontWeight: "300",
@@ -63,46 +61,43 @@ const DiscoverSonification = () => {
         {space.title}
       </h1>
 
-      <div className="flex items-center space-x-6">
-        {/* Left Column: Image & Play Button */}
+      {/* Main content container with explicit left-right layout */}
+      <div className="flex justify-center items-start gap-8 w-full max-w-6xl px-4">
+        {/* Left Column */}
         <div className="flex flex-col items-center space-y-4">
           <img
-            className="image block rounded-3xl w-[300px] h-[300px] 
-            shadow-[0_0_30px_5px] shadow-black/40 drop-shadow-lg"
+            className="rounded-3xl w-[300px] h-[300px] object-cover shadow-[0_0_30px_5px] shadow-black/40"
             src={space.image}
             alt={space.title}
           />
-
-          {/* Play Button (aligned to image) */}
           <button
             onClick={playAudio}
-            className="px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white text-lg font-bold rounded-full shadow-lg transition duration-300"
+            className="px-6 py-3 text-white text-lg font-bold rounded-full shadow-lg transition duration-300"
           >
             ▶ Play Audio
           </button>
         </div>
 
-        {/* Right Column: Description */}
-        <div
-          className="bg-black bg-opacity-50 p-6 rounded-lg w-[600px] h-[400px] 
-          shadow-[0_0_30px_5px] shadow-black/40 drop-shadow-lg flex items-center"
-        >
-          <p
-            className="text-lg leading-relaxed"
-            style={{
-              fontFamily: "'Genos', sans-serif",
-              fontWeight: "400",
-              letterSpacing: "0.1em",
-            }}
-          >
-            {space.description}
-          </p>
+        {/* Right Column */}
+        <div className="flex-1 max-w-[600px]">
+          <div className="bg-black/50 p-6 rounded-lg h-[400px] shadow-[0_0_30px_5px] shadow-black/40 flex items-center">
+            <p
+              className="text-lg leading-relaxed"
+              style={{
+                fontFamily: "'Genos', sans-serif",
+                fontWeight: "400",
+                letterSpacing: "0.1em",
+              }}
+            >
+              {space.description}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Hidden Video Element - Only renders if `space.audio` (video link) is valid */}
+      {/* Hidden Video Element */}
       {space.audio ? (
-        <video ref={videoRef} src={space.audio} style={{ display: "none" }} />
+        <video ref={videoRef} src={space.audio} className="hidden" />
       ) : (
         <p className="text-red-400 mt-4">⚠ No audio available</p>
       )}

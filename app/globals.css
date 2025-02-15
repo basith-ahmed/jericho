@@ -111,3 +111,20 @@ body {
   /* Chrome, Safari, Opera */
   display: none;
 }
+
+.earth-container {
+  position: absolute;
+  bottom: -100%;
+  width: 100%;
+  height: 100%;
+  animation: slideUp 2s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from {
+    bottom: -100%;
+  }
+  to {
+    bottom: 0;
+  }
+}
