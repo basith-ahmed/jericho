@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 
-const EarthComponent = dynamic(() => import("./components/Earth"))
 
 export default function Home() {
   return (
