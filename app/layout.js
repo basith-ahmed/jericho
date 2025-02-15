@@ -42,7 +42,7 @@ export default function RootLayout({ children }) {
         <nav
           className="bg-black flex justify-between p-4 text-white border-b border-white sticky top-0 z-10"
         >
-          <div>JERICHO</div>
+          <div className="font-bold tracking-widest">JERICHO</div>
           <div className="space-x-4">
             <Link href="/">Home</Link>
             <Link href="/discover">Discover</Link>
