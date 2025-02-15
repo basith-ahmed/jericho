@@ -50,6 +50,9 @@ export default function RootLayout({ children }) {
           </div>
         </nav>
         <main className="flex-1 h-full">{children}</main>
+        {/* <footer className="text-white  py-6 w-full text-center border-t border-white/10">
+Copyright @ 2025
+        </footer> */}
       </body>
     </html>
   );

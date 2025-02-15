@@ -10,8 +10,8 @@ export default function Home() {
       </div>
 
       {/* Arch at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
-        <div className="w-full h-32 bg-white rounded-t-full opacity-10"></div>
+      <div className="absolute bottom-0 left-0 right-0 overflow-hidden w-full flex justify-center">
+        <div className="w-64    aspect-square bg-white rounded-full opacity-10"></div>
       </div>
     </div>
   );

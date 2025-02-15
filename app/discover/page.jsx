@@ -15,7 +15,7 @@ const DiscoverPage = () => {
       <div className="p-6 min-h-screen bg-black">
         <div className="p-24 space-y-4">
           <h1
-            className="text-4xl font-bold text-white w-full text-center"
+            className="text-6xl pt-12  font-bold text-white w-full text-center"
             style={{
               // fontFamily: "'Rubik Glitch', cursive",
               fontWeight: "300",
