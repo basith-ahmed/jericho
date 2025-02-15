@@ -37,9 +37,11 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-[100vh] bg-black`}
       >
-        <nav className="bg-black flex justify-between p-4 text-white border-b border-white">
+        <nav
+          className="bg-black flex justify-between p-4 text-white border-b border-white sticky top-0 z-10"
+        >
           <div>JERICHO</div>
           <div className="space-x-4">
             <Link href="/">Home</Link>
@@ -47,7 +49,7 @@ export default function RootLayout({ children }) {
             <Link href="/create">Create</Link>
           </div>
         </nav>
-        {children}
+        <main className="flex-1 h-full">{children}</main>
       </body>
     </html>
   );

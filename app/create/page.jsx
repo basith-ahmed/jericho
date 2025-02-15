@@ -1,6 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const SCALES = {
   major: [0, 2, 4, 5, 7, 9, 11],
@@ -29,10 +39,19 @@ export default function ImageSonification() {
   const audioContextRef = useRef(null);
   const previewRef = useRef(null);
   const sourceRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
   useEffect(() => {
     audioContextRef.current = new (window.AudioContext ||
       window.webkitAudioContext)();
+    return () => {
+      if (sourceRef.current) {
+        sourceRef.current.stop();
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
 
   const handleImageUpload = (e) => {
@@ -238,8 +257,8 @@ export default function ImageSonification() {
 
     if (isPlaying) {
       sourceRef.current?.stop();
+      cancelAnimationFrame(animationFrameRef.current);
       setIsPlaying(false);
-      setLineProgress(null);
     } else {
       if (audioContextRef.current.state === "suspended") {
         audioContextRef.current.resume();
@@ -249,107 +268,111 @@ export default function ImageSonification() {
       sourceRef.current.buffer = audioBuffer;
       sourceRef.current.connect(audioContextRef.current.destination);
 
-      const startTime = audioContextRef.current.currentTime;
-      sourceRef.current.start();
+      const startTime =
+        audioContextRef.current.currentTime -
+        (lineProgress / 100) * audioBuffer.duration;
+      sourceRef.current.start(0, (lineProgress / 100) * audioBuffer.duration);
       setIsPlaying(true);
 
-      const duration = audioBuffer.duration;
       const updateLine = () => {
-        if (!isPlaying) return;
         const elapsed = audioContextRef.current.currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1) * 100;
+        const progress = Math.min(elapsed / audioBuffer.duration, 1) * 100;
         setLineProgress(progress);
 
         if (progress < 100) {
-          requestAnimationFrame(updateLine);
+          animationFrameRef.current = requestAnimationFrame(updateLine);
         } else {
           setIsPlaying(false);
           setLineProgress(null);
         }
       };
 
-      requestAnimationFrame(updateLine);
+      animationFrameRef.current = requestAnimationFrame(updateLine);
     }
   };
 
   return (
-    <div
-      style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
-    >
+    <div className="flex flex-col  h-[calc(100vh-58px)] bg-black ">
       {!imageUrl && (
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            style={{ fontSize: "1.2rem", padding: "10px" }}
-          />
+        <div className="flex-1 flex flex-col text-white  justify-center items-center">
+          <h2 className="text-2xl font-bold">Create sonification</h2>
+          <div className="h-4" />
+          <label
+            htmlFor="imageUpload"
+            className="w-96 h-44 flex flex-col justify-center items-center border-2 border-dashed border-[#424242] text-white hover:border-[#252525] transition-all cursor-pointer rounded-2xl p-2 overflow-hidden"
+          >
+            <input
+              id="imageUpload"
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <span className="w-full h-full flex justify-center items-center rounded-lg bg-[#262626] hover:bg-[#333333]">
+              Click to upload image
+            </span>
+          </label>
         </div>
       )}
 
       {imageUrl && (
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            padding: "20px",
-            gap: "20px",
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            <div style={{ position: "relative", display: "inline-block" }}>
+        <div className="flex items-center justify-center h-full">
+          <div className="">
+            <div className="relative inline-block">
               <img
                 ref={previewRef}
                 src={imageUrl}
-                style={{ maxWidth: "100%", maxHeight: "80vh" }}
+                className="w-[450px]  p-2 border-2 border-dashed border-[#424242] text-white hover:border-[#252525] rounded-3xl"
               />
               {lineProgress !== null && (
                 <div
                   style={{
-                    position: "absolute",
-                    top: 0,
                     left: `${lineProgress}%`,
-                    width: "2px",
-                    height: "100%",
-                    backgroundColor: "red",
                     transition: "left 0.05s linear",
                   }}
+                  className="absolute top-0 h-full w-2 backdrop-blur-md bg-white/30"
                 />
               )}
             </div>
           </div>
 
-          <div style={{ width: "300px" }}>
-            <h2>Audio Settings</h2>
-            <div style={{ marginBottom: "15px" }}>
-              <label>
+          <div className="">
+            <h2 className="mb-4 text-lg font-semibold text-white">
+              Audio Settings
+            </h2>
+
+            <div className="mb-4">
+              <Label
+                htmlFor="scale"
+                className="block text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white"
+              >
                 Scale:
-                <select
-                  name="scale"
-                  value={audioParams.scale}
-                  onChange={handleParamChange}
-                >
-                  <option value="major">Major</option>
-                  <option value="minor">Minor</option>
-                  <option value="chromatic">Chromatic</option>
-                </select>
-              </label>
+              </Label>
+              <Select
+                value={audioParams.scale}
+                onValueChange={(value) =>
+                  handleParamChange({ target: { name: "scale", value } })
+                }
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select a scale" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="major">Major</SelectItem>
+                  <SelectItem value="minor">Minor</SelectItem>
+                  <SelectItem value="chromatic">Chromatic</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <label>
+            <div className="mb-4">
+              <label className="flex items-center text-white">
                 Waveform:
                 <select
                   name="waveform"
                   value={audioParams.waveform}
                   onChange={handleParamChange}
+                  className="ml-2 text-black"
                 >
                   <option value="square">Square</option>
                   <option value="sawtooth">Sawtooth</option>
@@ -358,80 +381,64 @@ export default function ImageSonification() {
               </label>
             </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <label>
+            <div className="mb-4">
+              <label className="flex items-center text-white">
                 Attack (s):
-                <input
+                <Input
                   type="number"
                   step="0.1"
                   name="attack"
                   value={audioParams.attack}
                   onChange={handleParamChange}
+                  className="ml-2 text-black"
                 />
               </label>
             </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <label>
+            <div className="mb-4">
+              <label className="flex items-center text-white">
                 Decay (s):
-                <input
+                <Input
                   type="number"
                   step="0.1"
                   name="decay"
                   value={audioParams.decay}
                   onChange={handleParamChange}
+                  className="ml-2 text-black"
                 />
               </label>
             </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <label>
+            <div className="mb-4">
+              <label className="flex items-center text-white">
                 Column Duration (ms):
-                <input
+                <Input
                   type="number"
                   name="columnDuration"
                   value={audioParams.columnDuration}
                   onChange={handleParamChange}
+                  className="ml-2 text-black"
                 />
               </label>
             </div>
 
-            <button
+            <Button
               onClick={playAudio}
-              style={{
-                width: "100%",
-                padding: "10px",
-                marginBottom: "20px",
-                fontSize: "1.1rem",
-              }}
+              variant="secondary"
+              className="w-full p-3 mb-4 text-lg text-black"
             >
               Generate Audio
-            </button>
+            </Button>
 
             {audioBlob && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  justifyContent: "center",
-                }}
-              >
-                <button
-                  onClick={handlePlayPause}
-                  style={{ padding: "10px 20px", fontSize: "1rem" }}
-                >
+              <div className="flex gap-4 justify-center">
+                <Button onClick={handlePlayPause} className="p-3 text-lg">
                   {isPlaying ? "Pause" : "Play"}
-                </button>
+                </Button>
                 <a
                   href={URL.createObjectURL(audioBlob)}
                   download="sonification.wav"
-                  style={{
-                    padding: "10px 20px",
-                    background: "#4CAF50",
-                    color: "white",
-                    textDecoration: "none",
-                    fontSize: "1rem",
-                  }}
+                  className="px-4  bg-secondary text-secondary-foreground hover:bg-secondary/80 bg-green-500  no-underline inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-semibold"
                 >
                   Download
                 </a>
@@ -441,7 +448,7 @@ export default function ImageSonification() {
         </div>
       )}
 
-      <canvas ref={canvasRef} style={{ display: "none" }} />
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }
