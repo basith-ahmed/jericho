@@ -23,10 +23,12 @@ export default function ImageSonification() {
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioBuffer, setAudioBuffer] = useState(null);
   const [lineProgress, setLineProgress] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const canvasRef = useRef(null);
   const audioContextRef = useRef(null);
   const previewRef = useRef(null);
+  const sourceRef = useRef(null);
 
   useEffect(() => {
     audioContextRef.current = new (window.AudioContext ||
@@ -231,162 +233,211 @@ export default function ImageSonification() {
     });
   };
 
-  const handlePlay = () => {
-    if (!audioBuffer || !previewRef.current) return;
+  const handlePlayPause = () => {
+    if (!audioBuffer) return;
 
-    const source = audioContextRef.current.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(audioContextRef.current.destination);
-    const startTime = audioContextRef.current.currentTime;
-    source.start();
-
-    setLineProgress(0);
-
-    const duration = audioBuffer.duration;
-    const updateLine = () => {
-      const elapsed = audioContextRef.current.currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1) * 100;
-      setLineProgress(progress);
-
-      if (progress < 100) {
-        requestAnimationFrame(updateLine);
+    if (isPlaying) {
+      sourceRef.current?.stop();
+      setIsPlaying(false);
+      setLineProgress(null);
+    } else {
+      if (audioContextRef.current.state === "suspended") {
+        audioContextRef.current.resume();
       }
-    };
 
-    requestAnimationFrame(updateLine);
+      sourceRef.current = audioContextRef.current.createBufferSource();
+      sourceRef.current.buffer = audioBuffer;
+      sourceRef.current.connect(audioContextRef.current.destination);
+
+      const startTime = audioContextRef.current.currentTime;
+      sourceRef.current.start();
+      setIsPlaying(true);
+
+      const duration = audioBuffer.duration;
+      const updateLine = () => {
+        if (!isPlaying) return;
+        const elapsed = audioContextRef.current.currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1) * 100;
+        setLineProgress(progress);
+
+        if (progress < 100) {
+          requestAnimationFrame(updateLine);
+        } else {
+          setIsPlaying(false);
+          setLineProgress(null);
+        }
+      };
+
+      requestAnimationFrame(updateLine);
+    }
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
-      <h1>Image Sonification</h1>
-
-      <div style={{ marginBottom: "20px" }}>
-        <input type="file" accept="image/*" onChange={handleImageUpload} />
-      </div>
+    <div
+      style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
+    >
+      {!imageUrl && (
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            style={{ fontSize: "1.2rem", padding: "10px" }}
+          />
+        </div>
+      )}
 
       {imageUrl && (
         <div
           style={{
-            marginBottom: "20px",
-            position: "relative",
-            display: "inline-block",
+            flex: 1,
+            display: "flex",
+            padding: "20px",
+            gap: "20px",
           }}
         >
-          <img
-            ref={previewRef}
-            src={imageUrl}
-            style={{ maxWidth: "100%", maxHeight: "300px" }}
-          />
-          {lineProgress !== null && (
-            <div
+          <div style={{ flex: 1 }}>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <img
+                ref={previewRef}
+                src={imageUrl}
+                style={{ maxWidth: "100%", maxHeight: "80vh" }}
+              />
+              {lineProgress !== null && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: `${lineProgress}%`,
+                    width: "2px",
+                    height: "100%",
+                    backgroundColor: "red",
+                    transition: "left 0.05s linear",
+                  }}
+                />
+              )}
+            </div>
+          </div>
+
+          <div style={{ width: "300px" }}>
+            <h2>Audio Settings</h2>
+            <div style={{ marginBottom: "15px" }}>
+              <label>
+                Scale:
+                <select
+                  name="scale"
+                  value={audioParams.scale}
+                  onChange={handleParamChange}
+                >
+                  <option value="major">Major</option>
+                  <option value="minor">Minor</option>
+                  <option value="chromatic">Chromatic</option>
+                </select>
+              </label>
+            </div>
+
+            <div style={{ marginBottom: "15px" }}>
+              <label>
+                Waveform:
+                <select
+                  name="waveform"
+                  value={audioParams.waveform}
+                  onChange={handleParamChange}
+                >
+                  <option value="square">Square</option>
+                  <option value="sawtooth">Sawtooth</option>
+                  <option value="triangle">Triangle</option>
+                </select>
+              </label>
+            </div>
+
+            <div style={{ marginBottom: "15px" }}>
+              <label>
+                Attack (s):
+                <input
+                  type="number"
+                  step="0.1"
+                  name="attack"
+                  value={audioParams.attack}
+                  onChange={handleParamChange}
+                />
+              </label>
+            </div>
+
+            <div style={{ marginBottom: "15px" }}>
+              <label>
+                Decay (s):
+                <input
+                  type="number"
+                  step="0.1"
+                  name="decay"
+                  value={audioParams.decay}
+                  onChange={handleParamChange}
+                />
+              </label>
+            </div>
+
+            <div style={{ marginBottom: "15px" }}>
+              <label>
+                Column Duration (ms):
+                <input
+                  type="number"
+                  name="columnDuration"
+                  value={audioParams.columnDuration}
+                  onChange={handleParamChange}
+                />
+              </label>
+            </div>
+
+            <button
+              onClick={playAudio}
               style={{
-                position: "absolute",
-                top: 0,
-                left: `${lineProgress}%`,
-                width: "2px",
-                height: "100%",
-                backgroundColor: "red",
-                transition: "left 0.05s linear",
+                width: "100%",
+                padding: "10px",
+                marginBottom: "20px",
+                fontSize: "1.1rem",
               }}
-            />
-          )}
-        </div>
-      )}
+            >
+              Generate Audio
+            </button>
 
-      {processing && <p>Processing image...</p>}
-
-      {columnData.length > 0 && (
-        <div style={{ marginTop: "20px" }}>
-          <div style={{ marginBottom: "15px" }}>
-            <label>
-              Scale:
-              <select
-                name="scale"
-                value={audioParams.scale}
-                onChange={handleParamChange}
-              >
-                <option value="major">Major</option>
-                <option value="minor">Minor</option>
-                <option value="chromatic">Chromatic</option>
-              </select>
-            </label>
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>
-              Waveform:
-              <select
-                name="waveform"
-                value={audioParams.waveform}
-                onChange={handleParamChange}
-              >
-                <option value="square">Square</option>
-                <option value="sawtooth">Sawtooth</option>
-                <option value="triangle">Triangle</option>
-              </select>
-            </label>
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>
-              Attack (s):
-              <input
-                type="number"
-                step="0.1"
-                name="attack"
-                value={audioParams.attack}
-                onChange={handleParamChange}
-              />
-            </label>
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>
-              Decay (s):
-              <input
-                type="number"
-                step="0.1"
-                name="decay"
-                value={audioParams.decay}
-                onChange={handleParamChange}
-              />
-            </label>
-          </div>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>
-              Column Duration (ms):
-              <input
-                type="number"
-                name="columnDuration"
-                value={audioParams.columnDuration}
-                onChange={handleParamChange}
-              />
-            </label>
-          </div>
-
-          <button onClick={playAudio} style={{ marginRight: "10px" }}>
-            Generate Audio
-          </button>
-
-          {audioBlob && (
-            <>
-              <button onClick={handlePlay} style={{ marginRight: "10px" }}>
-                Play
-              </button>
-              <a
-                href={URL.createObjectURL(audioBlob)}
-                download="sonification.wav"
+            {audioBlob && (
+              <div
                 style={{
-                  padding: "10px 20px",
-                  background: "#4CAF50",
-                  color: "white",
+                  display: "flex",
+                  gap: "10px",
+                  justifyContent: "center",
                 }}
               >
-                Download WAV
-              </a>
-            </>
-          )}
+                <button
+                  onClick={handlePlayPause}
+                  style={{ padding: "10px 20px", fontSize: "1rem" }}
+                >
+                  {isPlaying ? "Pause" : "Play"}
+                </button>
+                <a
+                  href={URL.createObjectURL(audioBlob)}
+                  download="sonification.wav"
+                  style={{
+                    padding: "10px 20px",
+                    background: "#4CAF50",
+                    color: "white",
+                    textDecoration: "none",
+                    fontSize: "1rem",
+                  }}
+                >
+                  Download
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
