@@ -3,20 +3,51 @@ import React from "react";
 import spaces from "@/constants/space";
 
 const DiscoverPage = () => {
+  // Function to get placeholder image for each card index
+  const getPlaceholderImage = (index) => {
+    // Creates different placeholder images based on index
+    return `/api/placeholder/${400 + index}/${320 + index}`;
+  };
+
   return (
-    <div>
-      <div>
-        <div>DiscoverPage</div>
-        <div className="grid grid-cols-3 gap-4">
-          {spaces.map((space, index) => (
-            <Link key={index} href={`/discover/${space.href}`}>
-                <div className="bg-white text-black p-4 ">
-                  {/* <img src={space.image} alt={space.title} className="mb-2" /> */}
-                  <h3 className="text-xl font-semibold">{space.title}</h3>
-                </div>
-            </Link>
-          ))}
-        </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Discover Spaces</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {spaces.map((space, index) => (
+          <div 
+            key={index} 
+            className="relative group rounded-lg overflow-hidden h-64"
+          >
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{
+                // Use space.image if available, otherwise use a unique placeholder
+                backgroundImage: `url(${space.image || getPlaceholderImage(index)})`
+              }}
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-40 transition-opacity group-hover:bg-opacity-50" />
+            
+            <div className="absolute inset-0 p-6 flex flex-col justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  {space.title}
+                </h3>
+                <p className="text-white text-sm opacity-90">
+                  {space.description || "Explore this amazing space"}
+                </p>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <Link 
+                  href={`/discover/${space.href}`}
+                  className="px-4 py-2 bg-white text-black rounded hover:bg-opacity-90 transition-colors text-sm font-medium"
+                >
+                  View Space
+                </Link>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
