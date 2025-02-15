@@ -3,12 +3,6 @@ import React from "react";
 import spaces from "@/constants/space";
 
 const DiscoverPage = () => {
-  // Function to get placeholder image for each card index
-  const getPlaceholderImage = (index) => {
-    // Creates different placeholder images based on index
-    return `/api/placeholder/${400 + index}/${320 + index}`;
-  };
-
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Discover Spaces</h1>
@@ -21,8 +15,7 @@ const DiscoverPage = () => {
             <div 
               className="absolute inset-0 bg-cover bg-center"
               style={{
-                // Use space.image if available, otherwise use a unique placeholder
-                backgroundImage: `url(${space.image || getPlaceholderImage(index)})`
+                backgroundImage: `url(${space.image})`
               }}
             />
             <div className="absolute inset-0 bg-black bg-opacity-40 transition-opacity group-hover:bg-opacity-50" />
@@ -33,7 +26,7 @@ const DiscoverPage = () => {
                   {space.title}
                 </h3>
                 <p className="text-white text-sm opacity-90">
-                  {space.description || "Explore this amazing space"}
+                  {space.note || "Explore this amazing space"}
                 </p>
               </div>
               
