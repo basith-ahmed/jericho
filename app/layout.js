@@ -35,6 +35,8 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Genos:ital,wght@0,100..900;1,100..900&display=swap"
           rel="stylesheet"
         />
+        <script src="https://www.youtube.com/iframe_api"></script>
+
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-[100vh] bg-black relative`}

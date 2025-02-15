@@ -1,71 +1,44 @@
-import Link from "next/link";
-import React from "react";
-import spaces from "@/constants/space";
-import Head from "next/head";
+import Link from "next/link"
+import spaces from "@/constants/space"
+
 
 const DiscoverPage = () => {
   return (
-    <div className="overflow-y-auto h-screen">
-      <Head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Rubik+Glitch&display=swap"
-          rel="stylesheet"
-        />
-      </Head>
-      <div className="p-6 min-h-screen bg-black">
-        <div className="p-24 space-y-4">
-          <h1
-            className="text-xl font-bold text-white w-full text-center"
-            style={{
-              // fontFamily: "'Rubik Glitch', cursive",
-              fontWeight: "300",
-              // letterSpacing: "0.2em",
-            }}
+    <div className="p-6 animate-fade-in font-sans bg-[linear-gradient(to_bottom,_#00000,_#d3d3d3)] min-h-screen text-black">
+      <h1 className="text-4xl font-extrabold mb-6 text-center drop-shadow-lg font-serif">Discover Spaces</h1>
+      <p className="mb-10 text-lg text-gray-700 text-center max-w-2xl mx-auto font-medium">
+        Sonification uses non-speech audio to convey information, transforming data into sound. Explore the spaces below
+        to experience how sound enhances understanding of various environments.
+      </p>
+
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {spaces.map((space, index) => (
+          <div
+            key={index}
+            className="relative group rounded-xl overflow-hidden h-72 transition-transform transform hover:scale-105 shadow-xl hover:shadow-2xl cursor-pointer backdrop-blur-lg bg-white/5"
           >
-            Discover Spaces
-          </h1>
-          <p className="text-white w-full text-center">
-            View community selected sonifications
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {spaces.map((space, index) => (
-            <Link href={`/discover/${space.href}`} key={space.href}>
-              <div
-                key={index}
-                className="relative group rounded-lg overflow-hidden h-64 shadow-lg transition-transform duration-300"
-                style={{
-                  boxShadow: "inset 0 0 20px 5px rgba(255, 255, 255, 0.6)",
-                }}
-              >
-                {/* Background Image with Stronger Magnify Effect */}
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-110"
-                  style={{
-                    backgroundImage: `url(${space.image})`,
-                  }}
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-40 transition-opacity group-hover:bg-opacity-50" />
+            {/* Background Image */}
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-all duration-500 group-hover:scale-110"
+              style={{ backgroundImage: `url(${space.image})` }}
+            />
 
-                <div className="absolute inset-0 p-6 flex flex-col justify-between">
-                  {/* Blurry Glass Effect for Title */}
-                  <div className="absolute bottom-0 left-0 w-full bg-white/10 backdrop-blur-xl p-4">
-                    <h3 className="text-2xl font-bold text-white">
-                      {space.title}
-                    </h3>
-                  </div>
+            {/* Dark Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent transition-opacity group-hover:bg-black/60" />
 
-                  {/* Description with Hide on Hover */}
-                  <div className="mt-16 transition-opacity duration-300 group-hover:opacity-0">
-                    <p className="text-white text-xs opacity-90">
-                      {space.note || "Explore this amazing space"}
-                    </p>
-                  </div>
+            {/* Glass Box at Top (Full Width) */}
+            <div className="absolute top-0 left-0 w-full bg-white/10 backdrop-blur-xl p-4 rounded-none">
+              <h3 className="text-xl font-bold text-white font-serif">{space.title}</h3>
+            </div>
 
-                  {/* Translucent and Lifted Button Positioned to Bottom Right */}
-                  {/* <Link
+            {/* Content at Bottom */}
+            <div className="absolute bottom-0 left-0 w-full p-4">
+              <p className="text-sm text-white mb-2">{space.description || "Explore this amazing space"}</p>
+              <div className="flex justify-end">
+                <Link
                   href={`/discover/${space.href}`}
-                  className="absolute right-4 bottom-4 px-4 py-2 bg-white/20 text-white rounded-lg backdrop-blur-md shadow-lg hover:bg-white/30 transition-colors text-sm font-medium"
+                  className="px-4 py-2 bg-black text-white border border-gray-700 rounded-lg hover:bg-gray-900 transition-all text-sm font-bold transform hover:scale-105 shadow-md shadow-gray-500/50"
                 >
                   View Space
                 </Link> */}
@@ -76,7 +49,8 @@ const DiscoverPage = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default DiscoverPage;
+export default DiscoverPage
+
