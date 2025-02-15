@@ -292,7 +292,7 @@ export default function ImageSonification() {
   };
 
   return (
-    <div className="flex flex-col  h-[calc(100vh-58px)] bg-black ">
+    <div className="flex flex-col  h-[calc(100vh-70px)] bg-black ">
       {!imageUrl && (
         <div className="flex-1 flex flex-col text-white  justify-center items-center">
           <h2 className="text-2xl font-bold">Create sonification</h2>
@@ -316,7 +316,7 @@ export default function ImageSonification() {
       )}
 
       {imageUrl && (
-        <div className="flex items-center justify-center h-full w-full">
+        <div className="flex items-center justify-center flex-1 w-full ">
           <div className="w-3/4 flex justify-center items-center">
             <div className="relative inline-block">
               <img
@@ -336,7 +336,7 @@ export default function ImageSonification() {
             </div>
           </div>
           <div className="flex flex-col items-center justify-center h-screen w-2/4">
-            <div className="w-full  rounded-lg shadow-lg p-6 space-y-4 border-2 border-dashed border-[#424242] ">
+            <div className="w-full  rounded-lg shadow-lg p-6 space-y-4 border-2 border-dashed border-[#424242]">
               <h2 className="text-lg font-semibold text-white mb-4">
                 Audio Settings
               </h2>

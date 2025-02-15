@@ -86,3 +86,28 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+* {
+  scrollbar-width: none; /* For Firefox */
+}
+
+* {
+  -ms-overflow-style: none; /* For Internet Explorer and Edge */
+  overflow: auto;
+}
+
+*::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari, and Opera */
+}
+
+.no-scrollbar {
+  /* Hide scrollbars using browser-specific properties: */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  overflow: auto; /* Enable scrolling for content overflow */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  /* Chrome, Safari, Opera */
+  display: none;
+}
