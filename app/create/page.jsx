@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,6 +12,9 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DotPattern } from "@/components/magicui/dot";
+import { Upload } from "lucide-react";
+import { GridPattern } from "@/components/magicui/grid";
 
 const SCALES = {
   major: [0, 2, 4, 5, 7, 9, 11],
@@ -292,14 +296,24 @@ export default function ImageSonification() {
   };
 
   return (
-    <div className="flex flex-col  h-[calc(100vh-70px)] bg-black ">
+    <div className="flex flex-col  h-screen bg-black ">
       {!imageUrl && (
-        <div className="flex-1 flex flex-col text-white  justify-center items-center">
-          <h2 className="text-2xl font-bold">Create sonification</h2>
-          <div className="h-4" />
+        <div className="flex-1 flex text-white  justify-center items-center space-x-8">
+          <DotPattern
+            className={cn(
+              "[mask-image:radial-gradient(400px_circle_at_center,white,transparent)]"
+            )}
+          />
+          <div className="flex flex-col justify-start items-start min-w-[400px]">
+            <h2 className="text-3xl font-bold">Create Your Own</h2>
+            <p className="text-sm text-[#c3c3c3] max-w-[300px]">
+              Upload your own data and sonify it on the basis of light
+              intensity.
+            </p>
+          </div>
           <label
             htmlFor="imageUpload"
-            className="w-96 h-44 flex flex-col justify-center items-center border-2 border-dashed border-[#424242] text-white hover:border-[#252525] transition-all cursor-pointer rounded-2xl p-2 overflow-hidden"
+            className="w-96 h-44 flex flex-col justify-center items-center border-2 border-dashed border-[#5d82fe] text-white hover:border-[#252525] transition-all duration-300 cursor-pointer rounded-2xl p-2 overflow-hidden z-20"
           >
             <input
               id="imageUpload"
@@ -308,143 +322,183 @@ export default function ImageSonification() {
               onChange={handleImageUpload}
               className="hidden"
             />
-            <span className="w-full h-full flex justify-center items-center rounded-lg bg-[#262626] hover:bg-[#333333]">
-              Click to upload image
+            <span className="w-full h-full flex justify-center flex-col items-center rounded-lg bg-[#262626] hover:bg-[#333333]">
+              <Upload className="mb-2" />
+              Upload Image
             </span>
           </label>
         </div>
       )}
 
       {imageUrl && (
-        <div className="flex items-center justify-center flex-1 w-full ">
-          <div className="w-3/4 flex justify-center items-center">
-            <div className="relative inline-block">
-              <img
-                ref={previewRef}
-                src={imageUrl}
-                className="w-[450px] p-2 border-2 border-dashed border-[#424242] text-white hover:border-[#252525] rounded-3xl"
-              />
-              {lineProgress !== null && (
-                <div
-                  style={{
-                    left: `${lineProgress}%`,
-                    transition: "left 0.05s linear",
-                  }}
-                  className="absolute top-0 h-full w-2 backdrop-blur-md bg-white/30"
-                />
+        <div className="flex items-center justify-center flex-1 w-full bg-black h-full">
+          <div className="h-full relative w-3/4 flex  justify-center items-center">
+            <GridPattern
+              width={30}
+              height={30}
+              x={-1}
+              y={-1}
+              strokeDasharray={"4 2"}
+              className={cn(
+                "[mask-image:radial-gradient(500px_circle_at_center,white,transparent)]"
               )}
+            />
+            <div className="relative inline-block">
+              <div className="relative flex items-center ">
+                <img
+                  ref={previewRef}
+                  src={imageUrl}
+                  className="h-[550px] p-2 border-2 border-dashed border-[#171717] text-white"
+                />
+                {lineProgress !== null && (
+                  <div
+                    style={{
+                      left: `${lineProgress}%`,
+                      transition: "left 0.05s linear",
+                    }}
+                    className="absolute  h-[95%] w-2 backdrop-blur-md bg-white/30 rounded-full shadow-[0px_0px_10px_#ffffff]"
+                  />
+                )}
+              </div>
+              <div className="flex gap-4">
+                <Button
+                  onClick={playAudio}
+                  className=" bg-white text-black hover:bg-white/90 font-medium py-2 mt-4 w-full"
+                >
+                  {processing ? "Processing" : "Generate Audio"}
+                </Button>
+                {audioBlob && (
+                  <div className="flex gap-4 justify-center pt-4 w-full">
+                    <Button
+                      onClick={handlePlayPause}
+                      className="w-full bg-white text-black hover:bg-white/90"
+                    >
+                      {isPlaying ? "Pause" : "Play"}
+                    </Button>
+                    <a
+                      href={URL.createObjectURL(audioBlob)}
+                      download="sonification.wav"
+                      className="w-full inline-flex items-center justify-center px-4 py-2 bg-white text-black hover:bg-white/90 rounded-md font-medium"
+                    >
+                      Download
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex flex-col items-center justify-center h-screen w-2/4">
-            <div className="w-full  rounded-lg shadow-lg p-6 space-y-4 border-2 border-dashed border-[#424242]">
-              <h2 className="text-lg font-semibold text-white mb-4">
-                Audio Settings
+          <div className="flex flex-col items-center justify-center h-full w-1/4">
+            <div className="w-full h-full border-l border-white/10 bg-black p-8 pt-24 space-y-3">
+              <h2 className="text-2xl font-bold text-white tracking-tight mb-8">
+                Sonification Configurations
               </h2>
 
-              <div className="mb-4">
-                <Label
-                  htmlFor="scale"
-                  className="block text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white"
-                >
-                  Scale:
-                </Label>
-                <Select
-                  value={audioParams.scale}
-                  onValueChange={(value) =>
-                    handleParamChange({ target: { name: "scale", value } })
-                  }
-                  className="w-full"
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a scale" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="major">Major</SelectItem>
-                    <SelectItem value="minor">Minor</SelectItem>
-                    <SelectItem value="chromatic">Chromatic</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="mb-4">
-                <label className="flex items-center text-white w-full">
-                  Waveform:
-                  <select
-                    name="waveform"
-                    value={audioParams.waveform}
-                    onChange={handleParamChange}
-                    className="ml-2 text-black w-full"
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label className="text-white text-sm">Scale</Label>
+                  <Select
+                    value={audioParams.scale}
+                    onValueChange={(value) =>
+                      handleParamChange({ target: { name: "scale", value } })
+                    }
                   >
-                    <option value="square">Square</option>
-                    <option value="sawtooth">Sawtooth</option>
-                    <option value="triangle">Triangle</option>
-                  </select>
-                </label>
-              </div>
+                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
+                      <SelectValue placeholder="Select a scale" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black border-white/10">
+                      <SelectItem
+                        value="major"
+                        className="text-white hover:bg-white/10"
+                      >
+                        Major
+                      </SelectItem>
+                      <SelectItem
+                        value="minor"
+                        className="text-white hover:bg-white/10"
+                      >
+                        Minor
+                      </SelectItem>
+                      <SelectItem
+                        value="chromatic"
+                        className="text-white hover:bg-white/10"
+                      >
+                        Chromatic
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="mb-4">
-                <label className="flex items-center text-white w-full">
-                  Attack (s):
+                <div className="space-y-2">
+                  <Label className="text-white text-sm">Waveform</Label>
+                  <Select
+                    value={audioParams.waveform}
+                    onValueChange={(value) =>
+                      handleParamChange({ target: { name: "waveform", value } })
+                    }
+                  >
+                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
+                      <SelectValue placeholder="Select a waveform" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black border-white/10">
+                      <SelectItem
+                        value="square"
+                        className="text-white hover:bg-white/10"
+                      >
+                        Square
+                      </SelectItem>
+                      <SelectItem
+                        value="sawtooth"
+                        className="text-white hover:bg-white/10"
+                      >
+                        Sawtooth
+                      </SelectItem>
+                      <SelectItem
+                        value="triangle"
+                        className="text-white hover:bg-white/10"
+                      >
+                        Triangle
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-white text-sm">Attack (s)</Label>
                   <Input
                     type="number"
                     step="0.1"
                     name="attack"
                     value={audioParams.attack}
                     onChange={handleParamChange}
-                    className="ml-2 text-black w-full"
+                    className="bg-white/5 border-white/10 text-white"
                   />
-                </label>
-              </div>
+                </div>
 
-              <div className="mb-4">
-                <label className="flex items-center text-white w-full">
-                  Decay (s):
+                <div className="space-y-2">
+                  <Label className="text-white text-sm">Decay (s)</Label>
                   <Input
                     type="number"
                     step="0.1"
                     name="decay"
                     value={audioParams.decay}
                     onChange={handleParamChange}
-                    className="ml-2 text-black w-full"
+                    className="bg-white/5 border-white/10 text-white"
                   />
-                </label>
-              </div>
+                </div>
 
-              <div className="mb-4">
-                <label className="flex items-center text-white w-full">
-                  Column Duration (ms):
+                <div className="space-y-2">
+                  <Label className="text-white text-sm">
+                    Column Duration (ms)
+                  </Label>
                   <Input
                     type="number"
                     name="columnDuration"
                     value={audioParams.columnDuration}
                     onChange={handleParamChange}
-                    className="ml-2 text-black w-full"
+                    className="bg-white/5 border-white/10 text-white"
                   />
-                </label>
-              </div>
-
-              <Button
-                onClick={playAudio}
-                variant="secondary"
-                className="w-full text-lg"
-              >
-                Generate Audio
-              </Button>
-
-              {audioBlob && (
-                <div className="flex justify-center">
-                  <Button onClick={handlePlayPause} className="text-lg">
-                    {isPlaying ? "Pause" : "Play"}
-                  </Button>
-                  <a
-                    href={URL.createObjectURL(audioBlob)}
-                    download="sonification.wav"
-                    className="px-4 bg-secondary text-secondary-foreground hover:bg-secondary/80 bg-green-500 no-underline inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-semibold text-lg"
-                  >
-                    Download
-                  </a>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

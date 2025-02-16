@@ -4,14 +4,16 @@ import spaces from "@/constants/space";
 const DiscoverPage = () => {
   return (
     <div className="p-6 animate-fade-in font-sans bg-gradient-to-bottom from-black to-gray-300 min-h-screen text-black">
-      <h1 className="text-4xl font-extrabold mb-6 text-center drop-shadow-lg font-serif">
-        Discover Spaces
-      </h1>
-      <p className="mb-10 text-lg text-gray-700 text-center max-w-2xl mx-auto font-medium">
-        Sonification uses non-speech audio to convey information, transforming
-        data into sound. Explore the spaces below to experience how sound
-        enhances understanding of various environments.
-      </p>
+      <div className="p-16 pt-32">
+        <h1 className="text-4xl font-extrabold mb-6 text-center drop-shadow-lg font-serif text-white">
+          Discover Spaces
+        </h1>
+        <p className="mb-10 text-lg text-white text-center max-w-2xl mx-auto font-medium">
+          Sonification uses non-speech audio to convey information, transforming
+          data into sound. Explore the spaces below to experience how sound
+          enhances understanding of various environments.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {spaces.map((space, index) => (

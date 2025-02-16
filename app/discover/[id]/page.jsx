@@ -9,8 +9,8 @@ export default function DiscoverSonification({ params }) {
   if (!space) return <div>Space not found</div>;
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-black via-purple-900 to-blue-900 text-white pt-10">
-      <h1 className="text-5xl font-bold tracking-wide pb-8">
+    <div className="min-h-screen flex flex-col items-center  text-white pt-10">
+      <h1 className="text-5xl font-bold tracking-wide py-8">
         {space.title}
       </h1>
 

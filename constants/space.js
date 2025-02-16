@@ -17,7 +17,7 @@ const spaces = [
         "This data sonification of Arp 140 shows a pair of interacting galaxies. The leftmost galaxy is a barred spiral galaxy known as NGC 275, and the right-side galaxy is a lenticular galaxy called NGC 274. In barred spiral galaxies, a bar of stars runs through the central bulge of the galaxy (seen here as a bright-white, vertical haze in NGC 275).",
       note: "Demonstrates unique galactic interaction between different galaxy types",
       image:
-        "https://assets.science.nasa.gov/content/dam/science/missions/hubble/multimedia/sonifications/hubble-sonification-arp-140.mp4",
+        "https://cdn.sci.news/images/enlarge11/image_12657e-Arp-140.jpg",
       videoUrl:
         "https://assets.science.nasa.gov/content/dam/science/missions/hubble/multimedia/sonifications/hubble-sonification-arp-140.mp4",
     },

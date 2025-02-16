@@ -42,10 +42,10 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-[100vh] bg-black relative`}
       >
         <nav
-          className="bg-black flex justify-between p-4 text-white border-b border-white/10 absolute top-0 left-0 right-0 z-10"
+          className="bg-black flex justify-between p-4 text-white border-b border-white/10 absolute top-0 left-0 right-0 z-50"
         >
           <div className="font-bold tracking-widest text-2xl">JERICHO</div>
-          <div className="space-x-4">
+          <div className="space-x-8 p-2">
             <Link href="/">Home</Link>
             <Link href="/discover">Discover</Link>
             <Link href="/create">Create</Link>
