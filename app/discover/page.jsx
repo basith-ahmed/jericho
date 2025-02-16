@@ -1,17 +1,26 @@
+"use client"
+
 import Link from "next/link";
 import spaces from "@/constants/space";
+import FadeContent from "@/components/magicui/fade-content";
 
 const DiscoverPage = () => {
   return (
-    <div className="p-6 animate-fade-in font-sans bg-gradient-to-bottom from-black to-gray-300 min-h-screen text-black">
-      <div className="p-16 pt-32">
-        <h1 className="text-4xl font-extrabold mb-6 text-center drop-shadow-lg font-serif text-white">
+    <FadeContent
+      blur={true}
+      duration={700}
+      easing="ease-out"
+      initialOpacity={0}
+      className="p-6 animate-fade-in font-sans bg-gradient-to-bottom from-black to-gray-300 min-h-screen text-black"
+    >
+      <div className="p-16 pt-32 text-center">
+        <h1 className="text-5xl font-bold mb-6 drop-shadow-xl font-serif text-white tracking-wide">
           Discover Spaces
         </h1>
-        <p className="mb-10 text-lg text-white text-center max-w-2xl mx-auto font-medium">
+        <p className="mb-10 text-xl text-white max-w-3xl mx-auto font-light leading-relaxed opacity-90">
           Sonification uses non-speech audio to convey information, transforming
           data into sound. Explore the spaces below to experience how sound
-          enhances understanding of various environments.
+          enhances the understanding of various environments.
         </p>
       </div>
 
@@ -56,7 +65,7 @@ const DiscoverPage = () => {
           </div>
         ))}
       </div>
-    </div>
+    </FadeContent>
   );
 };
 

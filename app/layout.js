@@ -36,25 +36,19 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
         <script src="https://www.youtube.com/iframe_api"></script>
-
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-[100vh] bg-black relative`}
       >
-        <nav
-          className="bg-black flex justify-between p-4 text-white border-b border-white/10 absolute top-0 left-0 right-0 z-50"
-        >
+        <nav className="bg-black/50 backdrop-blur-md flex justify-between p-4 px-8 text-white border-b border-white/10 absolute top-0 left-0 right-0 z-50">
           <div className="font-bold tracking-widest text-2xl">JERICHO</div>
-          <div className="space-x-8 p-2">
+          <div className="space-x-8 flex items-center ">
             <Link href="/">Home</Link>
             <Link href="/discover">Discover</Link>
             <Link href="/create">Create</Link>
           </div>
         </nav>
         <main className="flex-1 h-full">{children}</main>
-        {/* <footer className="text-white  py-6 w-full text-center border-t border-white/10">
-Copyright @ 2025
-        </footer> */}
       </body>
     </html>
   );

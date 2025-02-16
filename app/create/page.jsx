@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { DotPattern } from "@/components/magicui/dot";
 import { Upload } from "lucide-react";
 import { GridPattern } from "@/components/magicui/grid";
+import ShinyText from "@/components/magicui/shiny-text";
+import FadeContent from "@/components/magicui/fade-content";
 
 const SCALES = {
   major: [0, 2, 4, 5, 7, 9, 11],
@@ -298,14 +300,25 @@ export default function ImageSonification() {
   return (
     <div className="flex flex-col  h-screen bg-black ">
       {!imageUrl && (
-        <div className="flex-1 flex text-white  justify-center items-center space-x-8">
+        <FadeContent
+          blur={true}
+          duration={700}
+          easing="ease-out"
+          initialOpacity={0}
+          className="flex-1 flex text-white  justify-center items-center space-x-8"
+        >
           <DotPattern
             className={cn(
               "[mask-image:radial-gradient(400px_circle_at_center,white,transparent)]"
             )}
           />
           <div className="flex flex-col justify-start items-start min-w-[400px]">
-            <h2 className="text-3xl font-bold">Create Your Own</h2>
+            <ShinyText
+              text="Create Your Own"
+              disabled={false}
+              speed={3}
+              className="text-3xl font-bold"
+            />
             <p className="text-sm text-[#c3c3c3] max-w-[300px]">
               Upload your own data and sonify it on the basis of light
               intensity.
@@ -322,12 +335,12 @@ export default function ImageSonification() {
               onChange={handleImageUpload}
               className="hidden"
             />
-            <span className="w-full h-full flex justify-center flex-col items-center rounded-lg bg-[#262626] hover:bg-[#333333]">
+            <span className="w-full h-full flex justify-center flex-col items-center rounded-lg bg-[#262626] hover:bg-[#333333] active:scale-[99%]">
               <Upload className="mb-2" />
               Upload Image
             </span>
           </label>
-        </div>
+        </FadeContent>
       )}
 
       {imageUrl && (
@@ -348,7 +361,9 @@ export default function ImageSonification() {
                 <img
                   ref={previewRef}
                   src={imageUrl}
-                  className="h-[550px] p-2 border-2 border-dashed border-[#171717] text-white"
+                  width={550}
+                  height={300}
+                  className="max-h-[400px] max-w-[550px] p-2 border-2 border-dashed border-[#171717] text-white"
                 />
                 {lineProgress !== null && (
                   <div

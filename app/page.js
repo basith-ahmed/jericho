@@ -10,7 +10,7 @@ export default function Home() {
       <Aurora speed={0.5} className="absolute top-0" />
       <div className="flex flex-col items-center justify-center text-white h-full w-full absolute top-0 z-30">
         <BlurText
-          text=" Welcome to Our Platform"
+          text="Welcome to Our Platform"
           delay={150}
           animateBy="words"
           direction="top"
