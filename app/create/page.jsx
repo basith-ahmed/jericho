@@ -46,6 +46,7 @@ export default function ImageSonification() {
   const [lineProgress, setLineProgress] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [waveformData, setWaveformData] = useState([]);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
   const canvasRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -151,10 +152,11 @@ export default function ImageSonification() {
 
   const playAudio = async () => {
     if (!columnData.length) return;
-    
+    setIsGeneratingAudio(true);
+
     // Calculate column duration to fit 30 seconds
     const columnDuration = (TARGET_DURATION * 1000) / columnData.length;
-    
+
     const offlineContext = new OfflineAudioContext({
       numberOfChannels: 2,
       length: TARGET_DURATION * 44100,
@@ -166,7 +168,8 @@ export default function ImageSonification() {
     masterGain.connect(offlineContext.destination);
 
     // Calculate root note from key and octave
-    const rootNote = (audioParams.octave + 1) * 12 + NOTES.indexOf(audioParams.key);
+    const rootNote =
+      (audioParams.octave + 1) * 12 + NOTES.indexOf(audioParams.key);
 
     columnData.forEach((column, index) => {
       const time = index * (columnDuration / 1000);
@@ -182,7 +185,7 @@ export default function ImageSonification() {
       if (audioParams.sparkle > 0) {
         const fmOsc = offlineContext.createOscillator();
         const fmGain = offlineContext.createGain();
-        fmOsc.type = 'square';
+        fmOsc.type = "square";
         fmOsc.frequency.value = freq * 2;
         fmGain.gain.value = freq * audioParams.sparkle;
         fmOsc.connect(fmGain);
@@ -215,35 +218,49 @@ export default function ImageSonification() {
     setAudioBuffer(buffer);
     setAudioBlob(audioBufferToWav(buffer));
     drawWaveform(buffer);
+    setIsGeneratingAudio(false);
   };
 
-  const drawWaveform = (buffer) => {
-    const canvas = waveformCanvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const data = buffer.getChannelData(0);
-    const step = Math.ceil(data.length / canvas.width);
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height/2);
-    
-    for (let i = 0; i < canvas.width; i++) {
-      let avg = 0;
-      for (let j = 0; j < step; j++) {
-        const index = i * step + j;
-        if (index >= data.length) break;
-        avg += data[index];
-      }
-      avg /= step;
-      ctx.lineTo(i, canvas.height/2 + avg * canvas.height/2);
-    }
-    
-    ctx.strokeStyle = "#5d82fe";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  };
+
+   const drawWaveform = (buffer) => {
+     const canvas = waveformCanvasRef.current;
+     if (!canvas) return;
+
+     const ctx = canvas.getContext("2d");
+     const data = buffer.getChannelData(0);
+
+     // Handle high DPI displays
+     const rect = canvas.getBoundingClientRect();
+     const dpr = window.devicePixelRatio || 1;
+     canvas.width = rect.width * dpr;
+     canvas.height = rect.height * dpr;
+     ctx.scale(dpr, dpr);
+
+     ctx.clearRect(0, 0, canvas.width, canvas.height);
+     ctx.beginPath();
+     ctx.moveTo(0, canvas.height / 2);
+
+     const totalSamples = data.length;
+     const step = totalSamples / rect.width;
+
+     for (let x = 0; x < rect.width; x++) {
+       const start = Math.floor(x * step);
+       const end = Math.floor((x + 1) * step);
+       let sum = 0;
+
+       for (let i = start; i < end && i < totalSamples; i++) {
+         sum += Math.abs(data[i]);
+       }
+
+       const avg = end - start > 0 ? sum / (end - start) : 0;
+       const y = canvas.height / 2 - (avg * canvas.height) / 2;
+       ctx.lineTo(x * dpr, y);
+     }
+
+     ctx.strokeStyle = "#5d82fe";
+     ctx.lineWidth = 2;
+     ctx.stroke();
+   };
 
   // Keep original audioBufferToWav and handleParamChange functions
    const audioBufferToWav = (buffer) => {
@@ -409,7 +426,7 @@ export default function ImageSonification() {
                 {lineProgress !== null && (
                   <div
                     style={{ left: `${lineProgress}%` }}
-                    className="absolute h-[95%] w-2 backdrop-blur-sm bg-white/30 rounded-full shadow-[0px_0px_10px_#ffffff]"
+                    className="absolute h-[95%] w-2 backdrop-blur-sm backdrop-brightness-200 bg-white/30 rounded-full shadow-[0px_0px_10px_#ffffff]"
                   />
                 )}
               </div>
@@ -423,8 +440,9 @@ export default function ImageSonification() {
                 <Button
                   onClick={playAudio}
                   className="bg-white text-black hover:bg-white/90 font-medium py-2 mt-4 w-full"
+                  disabled={isGeneratingAudio}
                 >
-                  {processing ? "Processing" : "Generate Audio"}
+                  {isGeneratingAudio ? "Processing..." : "Generate Audio"}
                 </Button>
                 {audioBlob && (
                   <div className="flex gap-4 justify-center pt-4 w-full">
@@ -459,14 +477,20 @@ export default function ImageSonification() {
                   <div className="flex gap-2">
                     <Select
                       value={audioParams.key}
-                      onValueChange={v => setAudioParams(p => ({ ...p, key: v }))}
+                      onValueChange={(v) =>
+                        setAudioParams((p) => ({ ...p, key: v }))
+                      }
                     >
                       <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-black border-white/10">
-                        {NOTES.map(note => (
-                          <SelectItem key={note} value={note} className="hover:bg-white/10">
+                        {NOTES.map((note) => (
+                          <SelectItem
+                            key={note}
+                            value={note}
+                            className="hover:bg-white/10"
+                          >
                             {note}
                           </SelectItem>
                         ))}
@@ -474,14 +498,20 @@ export default function ImageSonification() {
                     </Select>
                     <Select
                       value={audioParams.octave}
-                      onValueChange={v => setAudioParams(p => ({ ...p, octave: parseInt(v) }))}
+                      onValueChange={(v) =>
+                        setAudioParams((p) => ({ ...p, octave: parseInt(v) }))
+                      }
                     >
                       <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-black border-white/10">
-                        {[3, 4, 5, 6].map(oct => (
-                          <SelectItem key={oct} value={oct} className="hover:bg-white/10">
+                        {[3, 4, 5, 6].map((oct) => (
+                          <SelectItem
+                            key={oct}
+                            value={oct}
+                            className="hover:bg-white/10"
+                          >
                             {oct}
                           </SelectItem>
                         ))}
@@ -494,14 +524,20 @@ export default function ImageSonification() {
                   <Label className="text-white text-sm">Scale Type</Label>
                   <Select
                     value={audioParams.scale}
-                    onValueChange={v => setAudioParams(p => ({ ...p, scale: v }))}
+                    onValueChange={(v) =>
+                      setAudioParams((p) => ({ ...p, scale: v }))
+                    }
                   >
                     <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-black border-white/10">
-                      {Object.keys(SCALES).map(scale => (
-                        <SelectItem key={scale} value={scale} className="hover:bg-white/10">
+                      {Object.keys(SCALES).map((scale) => (
+                        <SelectItem
+                          key={scale}
+                          value={scale}
+                          className="hover:bg-white/10"
+                        >
                           {scale.charAt(0).toUpperCase() + scale.slice(1)}
                         </SelectItem>
                       ))}
@@ -517,7 +553,12 @@ export default function ImageSonification() {
                     max="1"
                     step="0.1"
                     value={audioParams.brightness}
-                    onChange={e => setAudioParams(p => ({ ...p, brightness: e.target.value }))}
+                    onChange={(e) =>
+                      setAudioParams((p) => ({
+                        ...p,
+                        brightness: e.target.value,
+                      }))
+                    }
                     className="bg-white/5 border-white/10"
                   />
                 </div>
@@ -530,7 +571,9 @@ export default function ImageSonification() {
                     max="0.5"
                     step="0.05"
                     value={audioParams.sparkle}
-                    onChange={e => setAudioParams(p => ({ ...p, sparkle: e.target.value }))}
+                    onChange={(e) =>
+                      setAudioParams((p) => ({ ...p, sparkle: e.target.value }))
+                    }
                     className="bg-white/5 border-white/10"
                   />
                 </div>
@@ -540,17 +583,25 @@ export default function ImageSonification() {
                   <Label className="text-white text-sm">Waveform</Label>
                   <Select
                     value={audioParams.waveform}
-                    onValueChange={v => setAudioParams(p => ({ ...p, waveform: v }))}
+                    onValueChange={(v) =>
+                      setAudioParams((p) => ({ ...p, waveform: v }))
+                    }
                   >
                     <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-black border-white/10">
-                      {['sine', 'square', 'sawtooth', 'triangle', 'bell'].map(wave => (
-                        <SelectItem key={wave} value={wave} className="hover:bg-white/10">
-                          {wave.charAt(0).toUpperCase() + wave.slice(1)}
-                        </SelectItem>
-                      ))}
+                      {["sine", "square", "sawtooth", "triangle", "bell"].map(
+                        (wave) => (
+                          <SelectItem
+                            key={wave}
+                            value={wave}
+                            className="hover:bg-white/10"
+                          >
+                            {wave.charAt(0).toUpperCase() + wave.slice(1)}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
