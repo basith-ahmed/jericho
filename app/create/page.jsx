@@ -407,7 +407,7 @@ export default function ImageSonification() {
           </div>
           <label
             htmlFor="imageUpload"
-            className="w-96 h-44 flex flex-col justify-center items-center border-2 border-dashed border-[#5d82fe] text-white hover:border-[#252525] transition-all duration-300 cursor-pointer rounded-2xl p-2 overflow-hidden z-20"
+            className="w-96 h-60 flex flex-col justify-center items-center border-2 border-dashed border-[#5d82fe] text-white hover:border-[#252525] transition-all duration-300 cursor-pointer rounded-2xl p-2 overflow-hidden z-20"
           >
             <input
               id="imageUpload"
