@@ -22,45 +22,56 @@ const SCALES = {
   major: [0, 2, 4, 5, 7, 9, 11],
   minor: [0, 2, 3, 5, 7, 8, 10],
   chromatic: Array.from({ length: 12 }, (_, i) => i),
+  pentatonic: [0, 2, 4, 7, 9],
 };
+
+const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 export default function ImageSonification() {
   const [imageUrl, setImageUrl] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [audioParams, setAudioParams] = useState({
     scale: "major",
-    rootNote: 60, // MIDI note C4
-    waveform: "square",
+    key: "C",
+    octave: 4,
+    waveform: "sine",
     attack: 0.1,
     decay: 0.3,
-    columnDuration: 100,
+    brightness: 0.5,
+    sparkle: 0.2,
   });
   const [columnData, setColumnData] = useState([]);
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioBuffer, setAudioBuffer] = useState(null);
   const [lineProgress, setLineProgress] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [waveformData, setWaveformData] = useState([]);
 
   const canvasRef = useRef(null);
   const audioContextRef = useRef(null);
   const previewRef = useRef(null);
   const sourceRef = useRef(null);
+  const waveformCanvasRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const startTimeRef = useRef(0);
+  const progressRef = useRef(0);
+
+  const TARGET_DURATION = 30; // 30 seconds
 
   useEffect(() => {
-    audioContextRef.current = new (window.AudioContext ||
-      window.webkitAudioContext)();
+    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
     return () => {
       if (sourceRef.current) {
         sourceRef.current.stop();
       }
       if (animationFrameRef.current) {
-        clearInterval(animationFrameRef.current);
+        cancelAnimationFrame(animationFrameRef.current);
       }
     };
   }, []);
 
-  const handleImageUpload = (e) => {
+  // Keep original handleImageUpload and processImage functions unchanged
+ const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -71,8 +82,8 @@ export default function ImageSonification() {
     };
     reader.readAsDataURL(file);
   };
-
-  const processImage = (url) => {
+  
+   const processImage = (url) => {
     setProcessing(true);
     const img = new Image();
     img.onload = () => {
@@ -131,7 +142,6 @@ export default function ImageSonification() {
   };
 
   const midiToFreq = (note) => 440 * Math.pow(2, (note - 69) / 12);
-
   const quantizeToScale = (value, scale) => {
     const notes = SCALES[scale];
     const maxNote = notes.length - 1;
@@ -141,12 +151,13 @@ export default function ImageSonification() {
 
   const playAudio = async () => {
     if (!columnData.length) return;
-    if (audioContextRef.current.state === "suspended")
-      await audioContextRef.current.resume();
-
+    
+    // Calculate column duration to fit 30 seconds
+    const columnDuration = (TARGET_DURATION * 1000) / columnData.length;
+    
     const offlineContext = new OfflineAudioContext({
       numberOfChannels: 2,
-      length: columnData.length * audioParams.columnDuration * 44.1,
+      length: TARGET_DURATION * 44100,
       sampleRate: 44100,
     });
 
@@ -154,54 +165,88 @@ export default function ImageSonification() {
     masterGain.gain.value = 0.5;
     masterGain.connect(offlineContext.destination);
 
-    columnData.forEach((column, index) => {
-      const time = index * (audioParams.columnDuration / 1000);
+    // Calculate root note from key and octave
+    const rootNote = (audioParams.octave + 1) * 12 + NOTES.indexOf(audioParams.key);
 
-      // Calculate note based on hue
+    columnData.forEach((column, index) => {
+      const time = index * (columnDuration / 1000);
       const scaleNote = quantizeToScale(column.hue, audioParams.scale);
-      const midiNote = audioParams.rootNote + scaleNote;
+      const midiNote = rootNote + scaleNote;
       const freq = midiToFreq(midiNote);
 
-      // Create oscillators with detuning for richer sound
-      const osc1 = offlineContext.createOscillator();
-      const osc2 = offlineContext.createOscillator();
-      osc1.type = audioParams.waveform;
-      osc2.type = audioParams.waveform;
-      osc2.detune.value = 3; // Slight detune for chorus effect
+      // Create main oscillator
+      const osc = offlineContext.createOscillator();
+      osc.type = audioParams.waveform;
+
+      // Add FM synthesis for sparkle effect
+      if (audioParams.sparkle > 0) {
+        const fmOsc = offlineContext.createOscillator();
+        const fmGain = offlineContext.createGain();
+        fmOsc.type = 'square';
+        fmOsc.frequency.value = freq * 2;
+        fmGain.gain.value = freq * audioParams.sparkle;
+        fmOsc.connect(fmGain);
+        fmGain.connect(osc.frequency);
+        fmOsc.start(time);
+        fmOsc.stop(time + audioParams.attack + audioParams.decay);
+      }
 
       // Create amplitude envelope
       const gain = offlineContext.createGain();
       gain.gain.setValueAtTime(0, time);
       gain.gain.linearRampToValueAtTime(
-        column.brightness,
+        column.brightness * audioParams.brightness,
         time + audioParams.attack
       );
-      gain.gain.linearRampToValueAtTime(
-        0,
+      gain.gain.exponentialRampToValueAtTime(
+        0.001,
         time + audioParams.attack + audioParams.decay
       );
 
-      // Connect nodes
-      osc1.connect(gain);
-      osc2.connect(gain);
+      osc.connect(gain);
       gain.connect(masterGain);
 
-      // Schedule playback
-      osc1.frequency.setValueAtTime(freq, time);
-      osc2.frequency.setValueAtTime(freq, time);
-      osc1.start(time);
-      osc2.start(time);
-      osc1.stop(time + audioParams.attack + audioParams.decay);
-      osc2.stop(time + audioParams.attack + audioParams.decay);
+      osc.frequency.setValueAtTime(freq, time);
+      osc.start(time);
+      osc.stop(time + audioParams.attack + audioParams.decay);
     });
 
     const buffer = await offlineContext.startRendering();
-    const wav = audioBufferToWav(buffer);
-    setAudioBlob(new Blob([wav], { type: "audio/wav" }));
     setAudioBuffer(buffer);
+    setAudioBlob(audioBufferToWav(buffer));
+    drawWaveform(buffer);
   };
 
-  const audioBufferToWav = (buffer) => {
+  const drawWaveform = (buffer) => {
+    const canvas = waveformCanvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const data = buffer.getChannelData(0);
+    const step = Math.ceil(data.length / canvas.width);
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height/2);
+    
+    for (let i = 0; i < canvas.width; i++) {
+      let avg = 0;
+      for (let j = 0; j < step; j++) {
+        const index = i * step + j;
+        if (index >= data.length) break;
+        avg += data[index];
+      }
+      avg /= step;
+      ctx.lineTo(i, canvas.height/2 + avg * canvas.height/2);
+    }
+    
+    ctx.strokeStyle = "#5d82fe";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  };
+
+  // Keep original audioBufferToWav and handleParamChange functions
+   const audioBufferToWav = (buffer) => {
     const numChannels = buffer.numberOfChannels;
     const length = buffer.length;
     const sampleRate = buffer.sampleRate;
@@ -247,7 +292,6 @@ export default function ImageSonification() {
 
     return new Blob([header, data], { type: "audio/wav" });
   };
-
   const handleParamChange = (e) => {
     setAudioParams({
       ...audioParams,
@@ -263,56 +307,46 @@ export default function ImageSonification() {
 
     if (isPlaying) {
       sourceRef.current?.stop();
-      clearInterval(animationFrameRef.current);
+      cancelAnimationFrame(animationFrameRef.current);
       setIsPlaying(false);
     } else {
-      if (audioContextRef.current.state === "suspended") {
-        audioContextRef.current.resume();
-      }
-
-      sourceRef.current = audioContextRef.current.createBufferSource();
-      sourceRef.current.buffer = audioBuffer;
-      sourceRef.current.connect(audioContextRef.current.destination);
-
-      const startPosition = (lineProgress || 0) / 100;
-      const startTime = audioContextRef.current.currentTime;
-      const offset = startPosition * audioBuffer.duration;
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContextRef.current.destination);
       
-      sourceRef.current.start(0, offset);
+      startTimeRef.current = audioContextRef.current.currentTime - progressRef.current * TARGET_DURATION;
+      source.start(0, progressRef.current * TARGET_DURATION);
+      
+      sourceRef.current = source;
       setIsPlaying(true);
 
-      // Use setInterval for smoother updates
-      animationFrameRef.current = setInterval(() => {
-        const elapsed = audioContextRef.current.currentTime - startTime + offset;
-        const progress = (elapsed / audioBuffer.duration) * 100;
+      const drawProgress = () => {
+        const progress = (audioContextRef.current.currentTime - startTimeRef.current) / TARGET_DURATION;
+        progressRef.current = progress;
+        setLineProgress(progress * 100);
         
-        if (progress >= 100) {
+        if (progress >= 1) {
           setIsPlaying(false);
+          progressRef.current = 0;
           setLineProgress(null);
-          clearInterval(animationFrameRef.current);
         } else {
-          setLineProgress(progress);
+          animationFrameRef.current = requestAnimationFrame(drawProgress);
         }
-      }, 16); // Update roughly every frame (60fps)
-
-      // Add event listener for when audio ends
-      sourceRef.current.onended = () => {
-        setIsPlaying(false);
-        setLineProgress(null);
-        clearInterval(animationFrameRef.current);
       };
+      
+      drawProgress();
     }
   };
 
   return (
-    <div className="flex flex-col  h-screen bg-black ">
+    <div className="flex flex-col h-screen bg-black">
       {!imageUrl && (
         <FadeContent
           blur={true}
           duration={700}
           easing="ease-out"
           initialOpacity={0}
-          className="flex-1 flex text-white  justify-center items-center space-x-8"
+          className="flex-1 flex text-white justify-center items-center space-x-8"
         >
           <DotPattern
             className={cn(
@@ -352,7 +386,7 @@ export default function ImageSonification() {
 
       {imageUrl && (
         <div className="flex items-center justify-center flex-1 w-full bg-black h-full">
-          <div className="h-full relative w-3/4 flex  justify-center items-center">
+          <div className="h-full relative w-3/4 flex justify-center items-center">
             <GridPattern
               width={30}
               height={30}
@@ -364,28 +398,31 @@ export default function ImageSonification() {
               )}
             />
             <div className="relative inline-block">
-              <div className="relative flex items-center ">
+              <div className="relative flex items-center">
                 <img
                   ref={previewRef}
                   src={imageUrl}
                   width={550}
                   height={300}
-                  className="max-h-[400px] max-w-[550px] p-2 border-2 border-dashed border-[#171717] text-white"
+                  className="max-h-[400px] max-w-[550px] p-2 border-2 border-dashed border-[#171717]"
                 />
                 {lineProgress !== null && (
                   <div
-                    style={{
-                      left: `${lineProgress}%`,
-                      transition: "left 16ms linear",
-                    }}
-                    className="absolute h-[95%] w-2 backdrop-blur-sm backdrop-saturate-100 backdrop-brightness-200 bg-white/30 rounded-full shadow-[0px_0px_10px_#ffffff]"
+                    style={{ left: `${lineProgress}%` }}
+                    className="absolute h-[95%] w-2 backdrop-blur-sm bg-white/30 rounded-full shadow-[0px_0px_10px_#ffffff]"
                   />
                 )}
               </div>
+              <canvas
+                ref={waveformCanvasRef}
+                className="w-full h-24 mt-4"
+                width={550}
+                height={96}
+              />
               <div className="flex gap-4">
                 <Button
                   onClick={playAudio}
-                  className=" bg-white text-black hover:bg-white/90 font-medium py-2 mt-4 w-full"
+                  className="bg-white text-black hover:bg-white/90 font-medium py-2 mt-4 w-full"
                 >
                   {processing ? "Processing" : "Generate Audio"}
                 </Button>
@@ -409,6 +446,7 @@ export default function ImageSonification() {
               </div>
             </div>
           </div>
+
           <div className="flex flex-col items-center justify-center h-full w-1/4">
             <div className="w-full h-full border-l border-white/10 bg-black p-8 pt-24 space-y-3">
               <h2 className="text-2xl font-bold text-white tracking-tight mb-8">
@@ -417,73 +455,105 @@ export default function ImageSonification() {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-white text-sm">Scale</Label>
+                  <Label className="text-white text-sm">Musical Key</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={audioParams.key}
+                      onValueChange={v => setAudioParams(p => ({ ...p, key: v }))}
+                    >
+                      <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black border-white/10">
+                        {NOTES.map(note => (
+                          <SelectItem key={note} value={note} className="hover:bg-white/10">
+                            {note}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={audioParams.octave}
+                      onValueChange={v => setAudioParams(p => ({ ...p, octave: parseInt(v) }))}
+                    >
+                      <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black border-white/10">
+                        {[3, 4, 5, 6].map(oct => (
+                          <SelectItem key={oct} value={oct} className="hover:bg-white/10">
+                            {oct}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-white text-sm">Scale Type</Label>
                   <Select
                     value={audioParams.scale}
-                    onValueChange={(value) =>
-                      handleParamChange({ target: { name: "scale", value } })
-                    }
+                    onValueChange={v => setAudioParams(p => ({ ...p, scale: v }))}
                   >
                     <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
-                      <SelectValue placeholder="Select a scale" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-black border-white/10">
-                      <SelectItem
-                        value="major"
-                        className="text-white hover:bg-white/10"
-                      >
-                        Major
-                      </SelectItem>
-                      <SelectItem
-                        value="minor"
-                        className="text-white hover:bg-white/10"
-                      >
-                        Minor
-                      </SelectItem>
-                      <SelectItem
-                        value="chromatic"
-                        className="text-white hover:bg-white/10"
-                      >
-                        Chromatic
-                      </SelectItem>
+                      {Object.keys(SCALES).map(scale => (
+                        <SelectItem key={scale} value={scale} className="hover:bg-white/10">
+                          {scale.charAt(0).toUpperCase() + scale.slice(1)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
+                  <Label className="text-white text-sm">Brightness</Label>
+                  <Input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={audioParams.brightness}
+                    onChange={e => setAudioParams(p => ({ ...p, brightness: e.target.value }))}
+                    className="bg-white/5 border-white/10"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-white text-sm">Sparkle Effect</Label>
+                  <Input
+                    type="range"
+                    min="0"
+                    max="0.5"
+                    step="0.05"
+                    value={audioParams.sparkle}
+                    onChange={e => setAudioParams(p => ({ ...p, sparkle: e.target.value }))}
+                    className="bg-white/5 border-white/10"
+                  />
+                </div>
+
+                {/* Keep original other parameters */}
+                <div className="space-y-2">
                   <Label className="text-white text-sm">Waveform</Label>
                   <Select
                     value={audioParams.waveform}
-                    onValueChange={(value) =>
-                      handleParamChange({ target: { name: "waveform", value } })
-                    }
+                    onValueChange={v => setAudioParams(p => ({ ...p, waveform: v }))}
                   >
                     <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
-                      <SelectValue placeholder="Select a waveform" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-black border-white/10">
-                      <SelectItem
-                        value="square"
-                        className="text-white hover:bg-white/10"
-                      >
-                        Square
-                      </SelectItem>
-                      <SelectItem
-                        value="sawtooth"
-                        className="text-white hover:bg-white/10"
-                      >
-                        Sawtooth
-                      </SelectItem>
-                      <SelectItem
-                        value="triangle"
-                        className="text-white hover:bg-white/10"
-                      >
-                        Triangle
-                      </SelectItem>
+                      {['sine', 'square', 'sawtooth', 'triangle', 'bell'].map(wave => (
+                        <SelectItem key={wave} value={wave} className="hover:bg-white/10">
+                          {wave.charAt(0).toUpperCase() + wave.slice(1)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
                   <Label className="text-white text-sm">Attack (s)</Label>
                   <Input
