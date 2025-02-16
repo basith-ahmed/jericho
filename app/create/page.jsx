@@ -55,7 +55,7 @@ export default function ImageSonification() {
         sourceRef.current.stop();
       }
       if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+        clearInterval(animationFrameRef.current);
       }
     };
   }, []);
@@ -263,7 +263,7 @@ export default function ImageSonification() {
 
     if (isPlaying) {
       sourceRef.current?.stop();
-      cancelAnimationFrame(animationFrameRef.current);
+      clearInterval(animationFrameRef.current);
       setIsPlaying(false);
     } else {
       if (audioContextRef.current.state === "suspended") {
@@ -274,26 +274,33 @@ export default function ImageSonification() {
       sourceRef.current.buffer = audioBuffer;
       sourceRef.current.connect(audioContextRef.current.destination);
 
-      const startTime =
-        audioContextRef.current.currentTime -
-        (lineProgress / 100) * audioBuffer.duration;
-      sourceRef.current.start(0, (lineProgress / 100) * audioBuffer.duration);
+      const startPosition = (lineProgress || 0) / 100;
+      const startTime = audioContextRef.current.currentTime;
+      const offset = startPosition * audioBuffer.duration;
+      
+      sourceRef.current.start(0, offset);
       setIsPlaying(true);
 
-      const updateLine = () => {
-        const elapsed = audioContextRef.current.currentTime - startTime;
-        const progress = Math.min(elapsed / audioBuffer.duration, 1) * 100;
-        setLineProgress(progress);
-
-        if (progress < 100) {
-          animationFrameRef.current = requestAnimationFrame(updateLine);
-        } else {
+      // Use setInterval for smoother updates
+      animationFrameRef.current = setInterval(() => {
+        const elapsed = audioContextRef.current.currentTime - startTime + offset;
+        const progress = (elapsed / audioBuffer.duration) * 100;
+        
+        if (progress >= 100) {
           setIsPlaying(false);
           setLineProgress(null);
+          clearInterval(animationFrameRef.current);
+        } else {
+          setLineProgress(progress);
         }
-      };
+      }, 16); // Update roughly every frame (60fps)
 
-      animationFrameRef.current = requestAnimationFrame(updateLine);
+      // Add event listener for when audio ends
+      sourceRef.current.onended = () => {
+        setIsPlaying(false);
+        setLineProgress(null);
+        clearInterval(animationFrameRef.current);
+      };
     }
   };
 
@@ -369,9 +376,9 @@ export default function ImageSonification() {
                   <div
                     style={{
                       left: `${lineProgress}%`,
-                      transition: "left 0.05s linear",
+                      transition: "left 16ms linear",
                     }}
-                    className="absolute  h-[95%] w-2 backdrop-blur-md bg-white/30 rounded-full shadow-[0px_0px_10px_#ffffff]"
+                    className="absolute h-[95%] w-2 backdrop-blur-sm backdrop-saturate-100 backdrop-brightness-200 bg-white/30 rounded-full shadow-[0px_0px_10px_#ffffff]"
                   />
                 )}
               </div>
