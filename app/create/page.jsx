@@ -47,6 +47,7 @@ export default function ImageSonification() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [waveformData, setWaveformData] = useState([]);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [analyzerNode, setAnalyzerNode] = useState(null);
 
   const canvasRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -56,14 +57,19 @@ export default function ImageSonification() {
   const animationFrameRef = useRef(null);
   const startTimeRef = useRef(0);
   const progressRef = useRef(0);
+  const animationRef = useRef(null);
 
-  const TARGET_DURATION = 30; // 30 seconds
+  const TARGET_DURATION = 30;
 
   useEffect(() => {
-    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    audioContextRef.current = new (window.AudioContext ||
+      window.webkitAudioContext)();
     return () => {
       if (sourceRef.current) {
         sourceRef.current.stop();
+      }
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
       }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -71,8 +77,7 @@ export default function ImageSonification() {
     };
   }, []);
 
-  // Keep original handleImageUpload and processImage functions unchanged
- const handleImageUpload = (e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -83,8 +88,8 @@ export default function ImageSonification() {
     };
     reader.readAsDataURL(file);
   };
-  
-   const processImage = (url) => {
+
+  const processImage = (url) => {
     setProcessing(true);
     const img = new Image();
     img.onload = () => {
@@ -105,7 +110,6 @@ export default function ImageSonification() {
           const idx = (y * canvas.width + x) * 4;
           const [r, g, b] = imageData.data.slice(idx, idx + 3);
 
-          // Convert RGB to HSL
           const max = Math.max(r, g, b);
           const min = Math.min(r, g, b);
           let h = (max + min) / 2;
@@ -154,7 +158,6 @@ export default function ImageSonification() {
     if (!columnData.length) return;
     setIsGeneratingAudio(true);
 
-    // Calculate column duration to fit 30 seconds
     const columnDuration = (TARGET_DURATION * 1000) / columnData.length;
 
     const offlineContext = new OfflineAudioContext({
@@ -167,7 +170,6 @@ export default function ImageSonification() {
     masterGain.gain.value = 0.5;
     masterGain.connect(offlineContext.destination);
 
-    // Calculate root note from key and octave
     const rootNote =
       (audioParams.octave + 1) * 12 + NOTES.indexOf(audioParams.key);
 
@@ -177,11 +179,9 @@ export default function ImageSonification() {
       const midiNote = rootNote + scaleNote;
       const freq = midiToFreq(midiNote);
 
-      // Create main oscillator
       const osc = offlineContext.createOscillator();
       osc.type = audioParams.waveform;
 
-      // Add FM synthesis for sparkle effect
       if (audioParams.sparkle > 0) {
         const fmOsc = offlineContext.createOscillator();
         const fmGain = offlineContext.createGain();
@@ -194,7 +194,6 @@ export default function ImageSonification() {
         fmOsc.stop(time + audioParams.attack + audioParams.decay);
       }
 
-      // Create amplitude envelope
       const gain = offlineContext.createGain();
       gain.gain.setValueAtTime(0, time);
       gain.gain.linearRampToValueAtTime(
@@ -217,53 +216,51 @@ export default function ImageSonification() {
     const buffer = await offlineContext.startRendering();
     setAudioBuffer(buffer);
     setAudioBlob(audioBufferToWav(buffer));
-    drawWaveform(buffer);
     setIsGeneratingAudio(false);
   };
 
+  const visualize = (analyzer) => {
+    const canvas = waveformCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const bufferLength = analyzer.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
 
-   const drawWaveform = (buffer) => {
-     const canvas = waveformCanvasRef.current;
-     if (!canvas) return;
+    const draw = () => {
+      animationRef.current = requestAnimationFrame(draw);
 
-     const ctx = canvas.getContext("2d");
-     const data = buffer.getChannelData(0);
+      analyzer.getByteTimeDomainData(dataArray);
 
-     // Handle high DPI displays
-     const rect = canvas.getBoundingClientRect();
-     const dpr = window.devicePixelRatio || 1;
-     canvas.width = rect.width * dpr;
-     canvas.height = rect.height * dpr;
-     ctx.scale(dpr, dpr);
+      ctx.fillStyle = "rgb(0, 0, 0)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-     ctx.clearRect(0, 0, canvas.width, canvas.height);
-     ctx.beginPath();
-     ctx.moveTo(0, canvas.height / 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#ffffff";
+      ctx.beginPath();
 
-     const totalSamples = data.length;
-     const step = totalSamples / rect.width;
+      const sliceWidth = canvas.width / bufferLength;
+      let x = 0;
 
-     for (let x = 0; x < rect.width; x++) {
-       const start = Math.floor(x * step);
-       const end = Math.floor((x + 1) * step);
-       let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
 
-       for (let i = start; i < end && i < totalSamples; i++) {
-         sum += Math.abs(data[i]);
-       }
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
 
-       const avg = end - start > 0 ? sum / (end - start) : 0;
-       const y = canvas.height / 2 - (avg * canvas.height) / 2;
-       ctx.lineTo(x * dpr, y);
-     }
+        x += sliceWidth;
+      }
 
-     ctx.strokeStyle = "#5d82fe";
-     ctx.lineWidth = 2;
-     ctx.stroke();
-   };
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+    };
 
-  // Keep original audioBufferToWav and handleParamChange functions
-   const audioBufferToWav = (buffer) => {
+    draw();
+  };
+
+  const audioBufferToWav = (buffer) => {
     const numChannels = buffer.numberOfChannels;
     const length = buffer.length;
     const sampleRate = buffer.sampleRate;
@@ -325,23 +322,47 @@ export default function ImageSonification() {
     if (isPlaying) {
       sourceRef.current?.stop();
       cancelAnimationFrame(animationFrameRef.current);
+
+      cancelAnimationFrame(animationRef.current);
       setIsPlaying(false);
     } else {
-      const source = audioContextRef.current.createBufferSource();
+
+      const audioContext = audioContextRef.current;
+      const source = audioContext.createBufferSource();
+      const analyzer = audioContext.createAnalyser();
+
+      analyzer.fftSize = 2048;
       source.buffer = audioBuffer;
+
+      source.connect(analyzer);
+      analyzer.connect(audioContext.destination);
+
+      setAnalyzerNode(analyzer);
+
       source.connect(audioContextRef.current.destination);
-      
-      startTimeRef.current = audioContextRef.current.currentTime - progressRef.current * TARGET_DURATION;
+
+      startTimeRef.current =
+        audioContextRef.current.currentTime -
+        progressRef.current * TARGET_DURATION;
+
+      startTimeRef.current =
+        audioContextRef.current.currentTime -
+        progressRef.current * TARGET_DURATION;
+
+      startTimeRef.current =
+        audioContext.currentTime - progressRef.current * TARGET_DURATION;
       source.start(0, progressRef.current * TARGET_DURATION);
-      
+
       sourceRef.current = source;
       setIsPlaying(true);
 
       const drawProgress = () => {
-        const progress = (audioContextRef.current.currentTime - startTimeRef.current) / TARGET_DURATION;
+        const progress =
+          (audioContextRef.current.currentTime - startTimeRef.current) /
+          TARGET_DURATION;
         progressRef.current = progress;
         setLineProgress(progress * 100);
-        
+
         if (progress >= 1) {
           setIsPlaying(false);
           progressRef.current = 0;
@@ -350,8 +371,10 @@ export default function ImageSonification() {
           animationFrameRef.current = requestAnimationFrame(drawProgress);
         }
       };
-      
+
       drawProgress();
+
+      visualize(analyzer);
     }
   };
 
@@ -414,19 +437,19 @@ export default function ImageSonification() {
                 "[mask-image:radial-gradient(500px_circle_at_center,white,transparent)]"
               )}
             />
-            <div className="relative inline-block">
+            <div className="relative inline-block p-4">
               <div className="relative flex items-center">
                 <img
                   ref={previewRef}
                   src={imageUrl}
                   width={550}
                   height={300}
-                  className="max-h-[400px] max-w-[550px] p-2 border-2 border-dashed border-[#171717]"
+                  className="max-h-[350px] max-w-[550px] p-2 border-2 border-dashed border-[#171717] bg-[#141414] rounded-lg"
                 />
                 {lineProgress !== null && (
                   <div
                     style={{ left: `${lineProgress}%` }}
-                    className="absolute h-[95%] w-2 backdrop-blur-sm backdrop-brightness-200 bg-white/30 rounded-full shadow-[0px_0px_10px_#ffffff]"
+                    className="absolute h-[98%] w-2 backdrop-blur-sm backdrop-brightness-[300%] bg-white/30 shadow-[0px_0px_10px_#ffffff] rounded-full"
                   />
                 )}
               </div>
@@ -578,7 +601,6 @@ export default function ImageSonification() {
                   />
                 </div>
 
-                {/* Keep original other parameters */}
                 <div className="space-y-2">
                   <Label className="text-white text-sm">Waveform</Label>
                   <Select
